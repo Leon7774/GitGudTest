@@ -16,7 +16,7 @@ jobs:
       - name: Set up Java
         uses: actions/setup-java@v5
         with:
-          distribution: 'jetbrains'
+          distribution: 'temurin'
           java-version: '25'
           check-latest: false
           cache: 'maven'
