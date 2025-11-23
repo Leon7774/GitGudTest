@@ -15,11 +15,11 @@
     </properties>
 
     <dependencies>
-        <!-- https://mvnrepository.com/artifact/jline/jline -->
+        <!-- https://mvnrepository.com/artifact/org.jline/jline -->
         <dependency>
-            <groupId>jline</groupId>
+            <groupId>org.jline</groupId>
             <artifactId>jline</artifactId>
-            <version>3.0.0.M1</version>
+            <version>3.30.6</version>
         </dependency>
     </dependencies>
 
