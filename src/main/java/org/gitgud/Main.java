@@ -2,6 +2,8 @@ package org.gitgud;
 
 import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
+import org.jline.utils.AttributedString;
+import org.jline.utils.Display;
 import org.jline.utils.InfoCmp;
 import org.jline.utils.NonBlockingReader;
 
@@ -124,9 +126,9 @@ public class Main {
     static volatile int camY = 0;
     static volatile boolean running = true;
 
-    // Double Buffering State
-    static char[][] currentScreen; // What is currently visible on terminal
-    static char[][] nextBuffer;    // What we are calculating for the next frame
+    // JLine Rendering Utilities
+    static Display display;
+    static char[][] buffer; // We still use a char buffer for easy drawing
     static int termWidth = 0;
     static int termHeight = 0;
 
@@ -136,12 +138,15 @@ public class Main {
         terminal.puts(InfoCmp.Capability.cursor_invisible);
         terminal.puts(InfoCmp.Capability.clear_screen);
 
+        // Initialize the Display utility (fullscreen = true)
+        display = new Display(terminal, true);
+
         NonBlockingReader reader = terminal.reader();
 
         // --- Data Setup ---
         List<String> rawMessages = Arrays.asList(
-                "Hello World", "Double Buffering", "Diff Rendering",
-                "WASD to move", "No flickering", "Java + JLine",
+                "Hello World", "Display Class", "Optimized Rendering",
+                "WASD to move", "Grouped Updates", "Java + JLine",
                 "The quick brown fox jumps over the lazy dog.",
                 "Box 1", "Box 2", "Box 3", "Box 4", "Box 5",
                 "Center", "Optimization is key",
@@ -150,7 +155,7 @@ public class Main {
 
         List<Post> wall = new ArrayList<>();
         for (String msg : rawMessages) wall.add(new Post(msg));
-        for(int i=0; i<2; i++) {
+        for(int i=0; i<12; i++) {
             for(String msg : rawMessages) wall.add(new Post(msg + " [" + i + "]"));
         }
 
@@ -204,72 +209,55 @@ public class Main {
         int width = terminal.getWidth();
         int height = terminal.getHeight();
 
-        // Handle Resize or Init
+        // Handle Resize
         if (width != termWidth || height != termHeight) {
             termWidth = width;
             termHeight = height;
-            currentScreen = new char[height][width];
-            nextBuffer = new char[height][width];
+            buffer = new char[height][width];
 
-            // Initialize with spaces to avoid null char issues
-            for (char[] row : currentScreen) Arrays.fill(row, ' ');
-
+            // Display must know the new size to handle diffs correctly
+            display.resize(height, width);
             terminal.puts(InfoCmp.Capability.clear_screen);
         }
 
-        // 1. Draw everything to the calculation buffer (nextBuffer)
-        // Clear buffer with background
-        for (char[] row : nextBuffer) Arrays.fill(row, ' ');
+        // 1. Paint to Char Array (Canvas)
+        // Clear buffer
+        for (char[] row : buffer) Arrays.fill(row, ' ');
 
         // Grid dots
         for (int r = 0; r < height; r++) {
             for (int c = 0; c < width; c++) {
                 if ((r + camY) % 10 == 0 && (c + camX) % 20 == 0) {
-                    nextBuffer[r][c] = '·';
+                    buffer[r][c] = '·';
                 }
             }
         }
 
-        // Draw Posts to buffer
+        // Draw Posts
         for (Post p : posts) {
             if (p.x + p.width < camX || p.x > camX + width ||
                     p.y + p.height < camY || p.y > camY + height) {
                 continue;
             }
-            drawBoxToBuffer(nextBuffer, p, width, height);
+            drawBoxToBuffer(buffer, p, width, height);
         }
 
         // UI
         String coords = " [WASD] Move | [Shift] Fast | [Q] Quit | Pos: " + camX + "," + camY + " ";
-        for(int i=0; i<coords.length() && i < width; i++) nextBuffer[0][i] = coords.charAt(i);
+        for(int i=0; i<coords.length() && i < width; i++) buffer[0][i] = coords.charAt(i);
 
-        // 2. Diff Rendering Loop (The SnakeZ approach)
-        boolean screenChanged = false;
-
-        for (int y = 0; y < height; y++) {
-            for (int x = 0; x < width; x++) {
-                // CRITICAL: Avoid writing to the very last character of the screen.
-                // Writing to (height-1, width-1) often forces a scroll on many terminals.
-                if (y == height - 1 && x == width - 1) continue;
-
-                if (nextBuffer[y][x] != currentScreen[y][x]) {
-                    // Move cursor to exact position
-                    terminal.puts(InfoCmp.Capability.cursor_address, y, x);
-
-                    // Print the character
-                    // We use terminal.writer() to ensure it shares the stream/buffer correctly
-                    terminal.writer().print(nextBuffer[y][x]);
-
-                    // Update our known state
-                    currentScreen[y][x] = nextBuffer[y][x];
-                    screenChanged = true;
-                }
-            }
+        // 2. Convert to AttributedString List
+        // Display expects a List<AttributedString> where each entry is a line.
+        List<AttributedString> lines = new ArrayList<>(height);
+        for (int r = 0; r < height; r++) {
+            // Create AttributedString from the char array row.
+            // This is where you could add colors/styles if you wanted later.
+            lines.add(new AttributedString(new String(buffer[r])));
         }
 
-        if (screenChanged) {
-            terminal.flush(); // Flush the batch of updates
-        }
+        // 3. Update Display
+        // .update() handles the diffing, cursor movement, and efficient string grouping.
+        display.update(lines, 0);
     }
 
     private static void drawBoxToBuffer(char[][] buffer, Post p, int screenW, int screenH) {
