@@ -2,6 +2,7 @@ package org.gitgud;
 
 import org.gitgud.core.algo.PostPacker;
 import org.gitgud.core.data.Post;
+import org.gitgud.core.data.TextPost;
 import org.gitgud.core.terminal.ConsoleRenderer;
 import org.gitgud.core.terminal.InputHandler;
 
@@ -20,17 +21,18 @@ public class Main {
         );
 
         List<Post> posts = new ArrayList<>();
-        for (String msg : dummyPosts) posts.add(new Post(msg));
-        for(int i=0; i<12; i++) {
-            for(String msg : dummyPosts) posts.add(new Post(msg + " [" + i + "]"));
+        for (String msg : dummyPosts) posts.add(new TextPost(msg, true));
+        for (int i = 0; i < 12; i++) {
+            for(String msg : dummyPosts) posts.add(new TextPost(msg + " [" + i + "]", true));
         }
-        posts.sort((p1, p2) -> (p2.width * p2.height) - (p1.width * p1.height));
+        posts.sort((p1, p2) ->
+                (p2.getWidth() * p2.getHeight()) - (p1.getWidth() * p1.getHeight()));
         posts.forEach(new PostPacker());
 
         ConsoleRenderer renderer = new ConsoleRenderer(posts);
         InputHandler inputHandler = new InputHandler(renderer);
-        inputHandler.startThreaded();
-        renderer.startBlocking();
+        inputHandler.startAsync();
+        renderer.startSync();
         System.exit(0);
     }
 }

@@ -1,53 +1,45 @@
 package org.gitgud.core.data;
 
-import java.util.ArrayList;
 import java.util.List;
 
-public class Post {
-    static final double VISUAL_BIAS = 4;
+public abstract class Post {
+    int x, y;
+    int width, height;
+    List<String> lines;
 
-    public int x, y;           // World coordinates (Top-Left)
-    public final int width, height;
-    public final List<String> lines; // The wrapped text content
-
-    public Post(String rawText) {
-        this.lines = wrapTextIdeally(rawText);
-        this.width = lines.stream().mapToInt(String::length).max().orElse(0) + 2;
-        this.height = lines.size() + 2;
+    void calcDimensionsFromLines() {
+        if (lines == null) return;
+        width = lines.stream().mapToInt(String::length).max().orElse(0) + 4;
+        height = lines.size() + 2;
     }
 
-    private List<String> wrapTextIdeally(String text) {
-        int targetWidth = (int) Math.sqrt(text.length() * VISUAL_BIAS);
-        if (targetWidth < 8) targetWidth = 8;
-
-        List<String> wrapped = getStrings(text, targetWidth);
-
-        int maxWidth = 0;
-        for(String s : wrapped) maxWidth = Math.max(maxWidth, s.length());
-        for(int i=0; i<wrapped.size(); i++) {
-            StringBuilder s = new StringBuilder(wrapped.get(i));
-            while(s.length() < maxWidth) s.append(" ");
-            wrapped.set(i, s.toString());
-        }
-        return wrapped;
+    public int getX() {
+        return x;
     }
 
-    private static List<String> getStrings(String text, int targetWidth) {
-        List<String> wrapped = new ArrayList<>();
-        String[] words = text.split("\\s+");
-        StringBuilder currentLine = new StringBuilder();
-
-        for (String word : words) {
-            if (currentLine.length() + 1 + word.length() > targetWidth) {
-                if (!currentLine.isEmpty()) {
-                    wrapped.add(currentLine.toString());
-                    currentLine = new StringBuilder();
-                }
-            }
-            if (!currentLine.isEmpty()) currentLine.append(" ");
-            currentLine.append(word);
-        }
-        if (!currentLine.isEmpty()) wrapped.add(currentLine.toString());
-        return wrapped;
+    public int getY() {
+        return y;
     }
+
+    public int getWidth() {
+        return width;
+    }
+
+    public int getHeight() {
+        return height;
+    }
+
+    public List<String> getLines() {
+        return lines;
+    }
+
+    public void setX(int x) {
+        this.x = x;
+    }
+
+    public void setY(int y) {
+        this.y = y;
+    }
+
+    abstract public void update(double deltaTIme);
 }

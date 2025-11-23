@@ -24,7 +24,7 @@ public class InputHandler {
         renderer.camY.set(-terminal.getHeight() / 2);
     }
 
-    public void startThreaded() {
+    public void startAsync() {
         Thread inputThread = new Thread(() -> {
             try {
                 while (renderer.running.get()) {

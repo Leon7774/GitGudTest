@@ -32,7 +32,7 @@ public class ConsoleRenderer {
     char[][] buffer;
     int width = 0;
     int height = 0;
-    long elapsedTime = 0;
+    double deltaTime = 0;
 
     public ConsoleRenderer(List<Post> posts) throws IOException {
         terminal = TerminalBuilder.builder().system(true).build();
@@ -62,15 +62,16 @@ public class ConsoleRenderer {
 
     private static char getCharacterAt(Post p, int y, int x) {
         char c = ' ';
-        if (y == 0) c = (x == 0) ? TL : (x == p.width - 1 ? TR : HL);
-        else if (y == p.height - 1) c = (x == 0) ? BL : (x == p.width - 1 ? BR : HL);
+        if (y == 0) c = (x == 0) ? TL : (x == p.getWidth() - 1 ? TR : HL);
+        else if (y == p.getHeight() - 1) c = (x == 0) ? BL : (x == p.getWidth() - 1 ? BR : HL);
         else {
-            if (x == 0 || x == p.width - 1) c = VL;
-            else {
+            if (x == 0 || x == p.getWidth() - 1) c = VL;
+            else if (x > 1 && x < p.getWidth() - 2) {
                 int textRow = y - 1;
-                if (textRow < p.lines.size()) {
-                    String line = p.lines.get(textRow);
-                    int textCol = x - 1;
+                List<String> lines = p.getLines();
+                if (textRow < lines.size()) {
+                    String line = lines.get(textRow);
+                    int textCol = x - 2;
                     if (textCol < line.length()) c = line.charAt(textCol);
                 }
             }
@@ -79,14 +80,14 @@ public class ConsoleRenderer {
     }
 
     private void drawBoxToBuffer(char[][] buffer, Post p, int screenW, int screenH) {
-        int screenX = p.x - camX.get();
-        int screenY = p.y - camY.get();
+        int screenX = p.getX() - camX.get();
+        int screenY = p.getY() - camY.get();
 
-        for (int y = 0; y < p.height; y++) {
+        for (int y = 0; y < p.getHeight(); y++) {
             int drawY = screenY + y;
             if (drawY < 0 || drawY >= screenH) continue;
 
-            for (int x = 0; x < p.width; x++) {
+            for (int x = 0; x < p.getWidth(); x++) {
                 int drawX = screenX + x;
                 if (drawX < 0 || drawX >= screenW) continue;
 
@@ -98,10 +99,13 @@ public class ConsoleRenderer {
 
     private void renderPosts() {
         for (Post p : posts) {
-            if (p.x + p.width < camX.get() || p.x > camX.get() + width ||
-                    p.y + p.height < camY.get() || p.y > camY.get() + height) {
+            if (p.getX() + p.getWidth() < camX.get()
+                    || p.getX() > camX.get() + width
+                    || p.getY() + p.getHeight() < camY.get()
+                    || p.getY() > camY.get() + height) {
                 continue;
             }
+            p.update(deltaTime);
             drawBoxToBuffer(buffer, p, width, height);
         }
     }
@@ -121,16 +125,15 @@ public class ConsoleRenderer {
         updateDisplay();
     }
 
-    public void startBlocking() throws IOException, InterruptedException {
+    public void startSync() throws IOException, InterruptedException {
         terminal.puts(InfoCmp.Capability.cursor_invisible);
 
         while (running.get()) {
             long startTime = System.currentTimeMillis();
             render();
             long usedTime = System.currentTimeMillis() - startTime;
-
             long sleepTime = Math.max((1000 / TARGET_FPS) - usedTime, 0);
-            elapsedTime += sleepTime;
+            deltaTime = Math.max(1.0 / TARGET_FPS, usedTime / 1000.0);
             //noinspection BusyWait
             Thread.sleep(sleepTime);
         }
