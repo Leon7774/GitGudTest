@@ -59,11 +59,21 @@ public class Main {
 
     // --- 2. ALGORITHMS ---
 
+    /**
+     * A Rectangular Spiral Iterator.
+     * Biased to spread horizontally to account for terminal aspect ratios.
+     */
     static class SpiralIterator implements Iterator<int[]> {
         int x = 0, y = 0;
-        int dx = 0, dy = -1;
+        int dx = 0, dy = -1; // Start moving UP
         int stepCount = 0;
-        int stepLimit = 1;
+
+        // Aspect Ratio Bias: How much wider to search vs height.
+        // 3 means for every 1 step vertically, we walk 3 steps horizontally.
+        // This forces a flattened, landscape layout.
+        int horizontalBias = 3;
+
+        int segmentLength = 1; // Base length of the current spiral arm (before bias)
         int turnCount = 0;
 
         @Override
@@ -76,11 +86,23 @@ public class Main {
             y += dy;
             stepCount++;
 
-            if (stepCount >= stepLimit) {
+            // Determine the limit for the current direction
+            // If dx != 0, we are moving horizontally, so we apply the bias.
+            int currentLimit = (dx != 0) ? (segmentLength * horizontalBias) : segmentLength;
+
+            if (stepCount >= currentLimit) {
                 stepCount = 0;
                 turnCount++;
-                int temp = dx; dx = -dy; dy = temp;
-                if (turnCount % 2 == 0) stepLimit++;
+
+                // Rotate 90 degrees: (0,-1) -> (1,0) -> (0,1) -> (-1,0)
+                int temp = dx;
+                dx = -dy;
+                dy = temp;
+
+                // Every 2 turns (one vertical leg + one horizontal leg), the base spiral grows
+                if (turnCount % 2 == 0) {
+                    segmentLength++;
+                }
             }
             return current;
         }
