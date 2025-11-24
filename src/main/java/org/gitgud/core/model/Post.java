@@ -7,12 +7,12 @@ public abstract class Post {
     int width, height;
     List<String> lines;
 
-    void setDimensions(int width, int height) {
+    protected void setDimensions(int width, int height) {
         this.width = width + 4; // Pad content left and right by 1
         this.height = height + 2;
     }
 
-    void setDimensionsFromLines() {
+    protected void setDimensionsFromLines() {
         if (lines == null) return;
         int maxWidth = lines.stream()
                 .mapToInt(String::length)
@@ -47,6 +47,10 @@ public abstract class Post {
 
     public void setY(int y) {
         this.y = y;
+    }
+
+    protected void setLines(List<String> lines) {
+        this.lines = lines;
     }
 
     abstract public void update(double deltaTIme);

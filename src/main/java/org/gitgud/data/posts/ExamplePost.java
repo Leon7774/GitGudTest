@@ -6,9 +6,8 @@ import org.gitgud.core.model.StaticPost;
 public class ExamplePost extends StaticPost {
     public ExamplePost() {
         super("""
-                This is an example post,
-                using block quotes, from
-                a class extending StaticPost.
+                Welcome to the CSS
+                Git Gud Workshop 2025!
                 """, true);
     }
 }
